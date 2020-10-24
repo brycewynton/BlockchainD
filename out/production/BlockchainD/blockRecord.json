@@ -1,8 +1,8 @@
 {
-  "BlockID": "bf46b266-a6fc-4fca-b0a0-33d2154a1163",
+  "BlockID": "6b9c5817-6dab-4428-974d-acd4028a5f4f",
   "VerificationProcessID": "Process 2",
-  "uuid": "bf46b266-a6fc-4fca-b0a0-33d2154a1163",
+  "uuid": "6b9c5817-6dab-4428-974d-acd4028a5f4f",
   "Data": "This is the data contained within this transaction block",
-  "RandomSeed": "27e43d",
-  "WinningHash": "8549c9a9b82f202ae45f81f030f320eba429048f4b64402a3f34f858da7a5f4c"
+  "RandomSeed": "b68bad",
+  "WinningHash": "df3b8cb6549e08052a39065a20a5d244676f8730c8a776ec1973ff80473d1ac2"
 }

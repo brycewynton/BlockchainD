@@ -63,21 +63,21 @@ import com.google.gson.GsonBuilder;
 
 class BlockRecord implements Serializable // make serializable in order to send via socket
 {
-    String BlockID;
+    static String BlockID;
     // will hold the blocks ID
-    String VerificationProcessID;
+    static String VerificationProcessID;
     // holds the ID of the process that verifies the block, or tries to
-    String TimeStamp;
+    static String TimeStamp;
     // the blocks time stamp
-    String PreviousHash;
+    static String PreviousHash;
     // hash of the previous block
-    UUID uuid;
+    static UUID uuid;
     // how we will marshall data to JSON
-    String Data;
+    static String Data;
     // the data contained in the block
-    String RandomSeed;
+    static String RandomSeed;
     // this will be our means of trying to verify the block
-    String WinningHash;
+    static String WinningHash;
     // the hash of our winning guess
 
     public String getTimeStamp()
@@ -85,9 +85,9 @@ class BlockRecord implements Serializable // make serializable in order to send 
         return TimeStamp;
     }
 
-    public void setTimeStamp(String _timeStamp)
+    public static void setTimeStamp(String _timeStamp)
     {
-        this.TimeStamp = _timeStamp;
+        TimeStamp = _timeStamp;
     }
 
     public String getBlockID()
@@ -135,9 +135,9 @@ class BlockRecord implements Serializable // make serializable in order to send 
     {
         return this.Data;
     }
-    public void setData(String _Data)
+    public static void setData(String _Data)
     {
-        this.Data = _Data;
+        Data = _Data;
     }
     // getter / setter for obtaining and setting the data contained
 
@@ -358,7 +358,7 @@ class UVBServer implements Runnable
         // print to the client that we are starting up the UVBServer input thread
         try
         {
-            ServerSocket UVBServerSocket = new ServerSocket(Ports.UVBServerPort));
+            ServerSocket UVBServerSocket = new ServerSocket(Ports.UVBServerPort);
             // declare and initialize new server socket  for our incoming unverified blocks
             while (true)
             {
@@ -477,7 +477,67 @@ class UVBConsumer implements Runnable
 
 class BlockchainWorker extends Thread
 {
+    Socket socket;
+    // declare a socket for our blockchain worker
+    BlockchainWorker(Socket _sock)
+    {
+        socket = _sock;
+        // assign socket to _sock in constructor
+    }
 
+        public void run()
+        {
+            try
+            {
+                BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                String blockData = "";
+                // declare and initialize block data to an empty string
+                String blockDataInput = input.readLine();
+                // declare and initialize a block data input variable  that takes in input from our Buffered Reader
+                while((blockDataInput = input.readLine()) != null)
+                {
+                    blockData = blockData + "\n" + blockDataInput + "\n\r\n\r";
+                    // print put block data to the console
+                }
+                BlockchainD.fakeBlock = blockData;
+                // replace with winning blockchain
+                System.out.println(" _____________New Blockchain_____________\n" + BlockchainD.fakeBlock + "\n\n");
+                socket.close();
+                // close our sockdt
+            } catch (IOException ioe)
+            {
+                ioe.printStackTrace();
+            }
+        }
+}
+
+
+class BlockchainServer implements Runnable
+{
+    public void run()
+    {
+        int q_len = 6;
+        // number of opsys requests
+        Socket socket;
+        // declare a new socket
+        System.out.println("Starting the Blockchain server input thread using " + Integer.toString(Ports.BlockchainServerPort));
+        try
+        {
+            ServerSocket serverSocket = new ServerSocket(Ports.BlockchainServerPort, q_len);
+            // declare and implement new server socket taking in the blockchain server port
+            while (true)
+            {
+                socket = serverSocket.accept();
+                // accept incoming connections
+                new BlockchainWorker(socket).start();
+                // spawn new blockchain worker to handle requests
+            }
+        } catch (IOException ioException)
+        {
+            ioException.printStackTrace();
+            // print out caught exceptions
+        }
+    }
 }
 
 
@@ -489,6 +549,7 @@ public class BlockchainD
     public static String previousHash;
     public static String data;
     public static long timeStamp;
+    public static String TimeStamp;
     public static int  nonce;
     // declaration of private member variables for block header
 
@@ -510,7 +571,168 @@ public class BlockchainD
     LinkedList<BlockRecord> recordList = new LinkedList<BlockRecord>();
     // declare and initialize a new linked list full of BlockRecords
 
-    final PriorityBlockingQueue<BlockRecord> BlockchainPriorityQueue = new PriorityBlockingQueue<>(100, blockTimesStemp)
+    final PriorityBlockingQueue<BlockRecord> BlockchainPriorityQueue = new PriorityBlockingQueue<BlockRecord>(100, BlockTimeStampComparator);
+    // declare a final blocking priority queue that is concurrent
+
+    public static Comparator<BlockRecord> BlockTimeStampComparator = new Comparator<BlockRecord>()
+    {
+        @Override
+        public int compare(BlockRecord _b1, BlockRecord _b2)
+        {
+            String s1 = _b1.getTimeStamp();
+            // compare string 1 to block 1
+            String s2 = _b2.getTimeStamp();
+            // compare string 2 to block 2
+            if (s1 == s2)
+            // return true if s1 equals s2
+            {
+                return 0;
+            }
+
+            if (s1 == null)
+            // return false if s1 is null
+            {
+                return -1;
+            }
+
+            if (s2 == null)
+            // return false if s2 is null
+            {
+                return 1;
+            }
+
+            return s1.compareTo(s2);
+            // return our comparison
+        }
+    };
+
+    public void KeySend()
+    {
+        Socket socket;
+        // declare a new socket
+        PrintStream toServer;
+        // declare a new Print Stream variable
+        try
+        {
+            for(int i = 0; i < numProcesses; i++)
+            {
+                socket = new Socket(serverName, Ports.KeyServerPortBase + (i * 1000));
+                // initialize a new socket for each incoming process taking in each's respectine port number
+                toServer = new PrintStream(socket.getOutputStream());
+                // initialize a new print stream taking in output stream from socket
+                toServer.println("FakeKeyProcess" + BlockchainD.PID);
+                // print out fake key process
+                socket.close();
+                // close off connections
+            }
+        } catch (IOException ioException)
+        {
+            ioException.printStackTrace();
+            // print caught exceptions to the console
+        }
+    }
+
+    public void UnverifiedSend()
+    {
+        Socket UnverifiedBlockSocket;
+        // declare a unbverified block socket to hold client connection to UVBServer for each process
+        BlockRecord tempBlockRecord;
+        // declare a BlockRecord variable
+
+        String fakeBlockData;
+        // declare a variable to hold a fake block
+        String T_String;
+        // temp variable to hold all of the timestamp strings dynamically created
+        String TimeStampString;
+        // declare a string for timestamp
+        Date date;
+        // dec;lare a new date var
+        Random random = new Random();
+        // declare and initialize new random
+
+        try
+        {
+            Thread.sleep(999);
+            // give time for keys to be verified
+        } catch (InterruptedException interruptedException)
+        {
+            interruptedException.printStackTrace();
+            // print interruption exception to the console
+        }
+
+
+        try
+        {
+            for (int i = 0; i < 4; i++) {
+                BlockRecord blockRecord = new BlockRecord();
+                // declare nd initialize a new block record variable
+                fakeBlockData = "(Block#" + Integer.toString(((BlockchainD.PID + 1) * 10) + i) + " from Process: " + BlockchainD.PID + ")";
+                // fill our string with our fake block data and format it
+                sendData(fakeBlockData);
+                // following utility code, we will need to use our dynamically built chain with block recored below
+                BlockRecord.setData(fakeBlockData);
+                // set our block data
+                date = new Date();
+                // initialize the date
+                T_String = String.format("%1$s %2$tF.%2$tT", "", date);
+                // create our time stamp string
+                TimeStampString = T_String + "." + i;
+                // add our process number as an extension so timestamps dont collide
+                System.out.println("Timestamp: " + TimeStampString);
+                // print out time stamp string to console
+                BlockRecord.setTimeStamp(TimeStampString);
+                // set the timestamp in order to sort our priority queue for the blockrecord
+                setTimeStamp(TimeStampString);
+                // set timestamp for our BlockchainD that has the fake block in there
+                recordList.add(blockRecord);
+            }
+            Collections.shuffle(recordList);
+            // shuffle our record list
+
+            Iterator<BlockRecord> iterator = recordList.iterator();
+            // declarea and initialize a new iterator for our blockrecord object
+
+            while (iterator.hasNext()) {
+                tempBlockRecord = iterator.next();
+                // hold a block in our temp var as it iterates through our record
+                System.out.println(tempBlockRecord.getTimeStamp() + " " + tempBlockRecord.getData());
+                // print out our temp block records timestamp
+            }
+            System.out.println("");
+            // this is our shuffled version abouve
+
+            ObjectOutputStream toServerOutput = null;
+            // declare and intitialize an output streamfro sending java objects over socket
+            for (int i = 0; i < numProcesses; i++) {
+                System.out.println("Sending Unverified Blocks to process " + i + "...");
+                // print  out where we are sending the unverified block
+                iterator = recordList.iterator();
+                // iterate from beginning of record list
+                while (iterator.hasNext()) {
+                    UnverifiedBlockSocket = new Socket(serverName, Ports.UVBServerPortBase + (i * 1000));
+                    // initialize our unverified block socket taking in localhost and the correct port number for the respective process
+                    toServerOutput = new ObjectOutputStream(UnverifiedBlockSocket.getOutputStream());
+                    // initialize  output to server that takes in the unverified bloc sockets output stream
+                    Thread.sleep((random.nextInt((9) * 100)));
+                    // have our processes sleep for a random amount of time up to a second when sending
+                    tempBlockRecord = iterator.next();
+                    // hold our next block record in temp variable
+                    System.out.println("Unverified Block tempBlockRecord for Process " + i + ": " + tempBlockRecord.getTimeStamp() + " " + tempBlockRecord.getData());
+                    // print out the unverified block for each respective process to the console
+                    toServerOutput.writeObject(tempBlockRecord);
+                    // send UVB object
+                    toServerOutput.flush();
+                    // flush output stream
+                    UnverifiedBlockSocket.close();
+                    // close the connection
+                }
+            }
+        } catch (Exception e)
+        {
+            e.printStackTrace();
+            // print caught exception to console
+        }
+    }
 
 
 
@@ -616,6 +838,19 @@ public class BlockchainD
         this.data = data;
         // method to send data to the block
     }
+
+    public String getTimeStamp()
+    {
+        return TimeStamp;
+    }
+
+    public void setTimeStamp(String _timeStamp)
+    {
+        this.TimeStamp = _timeStamp;
+    }
+
+
+
 
     public static void writeToJSON()
     {
