@@ -1,8 +1,1 @@
-{
-  "BlockID": "6b9c5817-6dab-4428-974d-acd4028a5f4f",
-  "VerificationProcessID": "Process 2",
-  "uuid": "6b9c5817-6dab-4428-974d-acd4028a5f4f",
-  "Data": "This is the data contained within this transaction block",
-  "RandomSeed": "b68bad",
-  "WinningHash": "df3b8cb6549e08052a39065a20a5d244676f8730c8a776ec1973ff80473d1ac2"
-}
+{}

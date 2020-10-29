@@ -45,6 +45,7 @@
  * 	today on 10/22/2020.
  */
 
+import java.awt.*;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -52,6 +53,7 @@ import java.security.*;
 import java.security.spec.X509EncodedKeySpec;
 import java.sql.Time;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -75,6 +77,20 @@ class BlockRecord implements Serializable // make serializable in order to send 
     // how we will marshall data to JSON
     static String Data;
     // the data contained in the block
+    static String FirstName;
+    // first naem contained in record
+    static String LastName;
+    //last name containesd in record
+    static String SSN;
+    // social sewcurity number contained in record
+    static String DOB;
+    // Date of Birth String contained in record
+    static String Diagnosis;
+    // string containing Diagnosis contained in the record
+    static String Treatment;
+    // Treatment string contained within block record
+    static String RX;
+    // string RX contained in the block record
     static String RandomSeed;
     // this will be our means of trying to verify the block
     static String WinningHash;
@@ -159,7 +175,48 @@ class BlockRecord implements Serializable // make serializable in order to send 
     {
         this.WinningHash = _WinningHash;
     }
-    // getter and setters to obtain or set the winning hash
+
+    public String getFirstName() {
+        return this.FirstName;
+    }
+    public void setFirstName(String _fName) {
+        this.FirstName = _fName;
+    }
+    // getters and setters for the FirstName field in the block
+
+    public String getLastName()
+    {
+        return this.LastName;
+    }
+    public void setLastName(String _lName) {
+        this.LastName = _lName;
+    }
+    // getters and setters for last mname field in the block
+
+    public void setSSN(String _ssn) {
+        this.SSN = _ssn;
+    }
+    // setting for social securtity number
+
+    public void setDiag(String _diag) {
+        this.Diagnosis = _diag;
+    }
+    // setter for diagnosis
+
+    public void setTreatment(String _treat) {
+        this.Treatment = _treat;
+    }
+    // setter for treatment
+
+    public void setRx(String _rx) {
+        this.RX = _rx;
+    }
+    // setter for RX
+
+    public void setDOB(String _dob) {
+        this.DOB = _dob;
+    }
+    // setter for DOB
 }
 
 class ProcessBlock
@@ -190,7 +247,7 @@ class Ports
     public static int BlockchainServerPort;
     // where we will hold the incremented port num for new processes running Blockchain Server
 
-    public void setPorts()
+    public static void setPorts()
     {
         KeyServerPort = KeyServerPortBase + (BlockchainD.PID * 1000);
         // assign Key Server port to every new process incremented by 1000
@@ -540,6 +597,217 @@ class BlockchainServer implements Runnable
     }
 }
 
+class BlockInput
+{
+    protected static String FILENAME;
+    // declare member variable filename
+
+    protected static final int iFNAME = 0;
+    protected static final int iLNAME = 1;
+    protected static final int iDOB = 2;
+    protected static final int iSSNUM = 3;
+    protected static final int iDIAG = 4;
+    protected static final int iTREAT = 5;
+    protected static final int iRX = 6;
+
+    protected Queue<BlockRecord> ourPriorityQueue = new PriorityQueue<>(4, BlockTimeStampComparator);
+    // declare a new priority quewue to hold our blockchain records by timestamp
+
+    public static Comparator<BlockRecord> BlockTimeStampComparator = new Comparator<BlockRecord>() {
+        @Override
+        public int compare(BlockRecord o1, BlockRecord o2) {
+            String s1 = o1.getTimeStamp();
+            String s2 = o2.getTimeStamp();
+            if (s1 == s2)
+            {
+                return 0;
+            }
+            if (s1 == null)
+            {
+                return -1;
+            }
+            if (s2 == null)
+            {
+                return 1;
+            }
+            return s1.compareTo(s2);
+        }
+    };
+
+    public void ListBlock(String a[]) throws Exception {
+        LinkedList<BlockRecord> recordLinkedList = new LinkedList<BlockRecord>();
+
+        int pnum;
+        //process number
+        int UVBPort;
+        // unverified block port
+        int BlockChainPort;
+        // blockchain port
+
+        if (a.length < 1) {
+            pnum = 0;
+        } else if (a[0].equals("0")) {
+            pnum = 0;
+        } else if (a[0].equals("1")) {
+            pnum = 1;
+        } else if (a[0].equals("2"))
+        {
+            pnum = 2;
+        } else {
+            pnum = 0;
+        }
+
+        UVBPort = 4710 + pnum;
+
+        BlockChainPort = 4820 + pnum;
+
+        System.out.println("Process number: " + pnum + " Ports: " + UVBPort + " " + BlockChainPort + "\n");
+
+        if (pnum == 1)
+        {
+            FILENAME = "BlockInput1.txt";
+        }
+        else if (pnum == 2)
+        {
+            FILENAME = "BlockInput2.txt";
+        }
+        else
+        {
+            FILENAME = "BlockInput0.txt";
+        }
+
+        System.out.println("Using Input File: " + FILENAME);
+
+        try
+        {
+            BufferedReader bufferedReader = new BufferedReader(new FileReader(FILENAME));
+            String[] tokens = new String[10];
+            String InputLineString;
+            String string_uuid;
+            UUID uuidID;
+            BlockRecord tempBlockRecord;
+
+            StringWriter stringWriter = new StringWriter();
+
+            int i = 0;
+
+            while ((InputLineString = bufferedReader.readLine()) != null)
+            {
+                BlockRecord blockRecord = new BlockRecord();
+
+                try
+                {
+                    Thread.sleep(1001);
+                } catch (InterruptedException interruptedException)
+                {
+                    interruptedException.printStackTrace();
+                }
+
+                Date date = new Date();
+
+                String timestamp1 = String.format("%1$s %2$tF.%2$tT", "", date);
+
+                String timeStampString = timestamp1 + "." + pnum;
+
+                System.out.println("Timestamp: " + timeStampString);
+
+                blockRecord.setTimeStamp(timeStampString);
+
+
+                string_uuid = new String(UUID.randomUUID().toString());
+
+                blockRecord.setBlockID(string_uuid);
+
+                tokens = InputLineString.split(" +");
+                // split our input string into tokens
+                blockRecord.setFirstName(tokens[iFNAME]);
+                // set first name to newly tokenized iFNAME that we read from input files oth index
+                blockRecord.setLastName(tokens[iLNAME]);
+                // set last name to the newly tokenized last name data from the 1st index
+                blockRecord.setSSN(tokens[iSSNUM]);
+                // set social security number with the tokenized input from the 2rd index of our input string
+                blockRecord.setDOB(tokens[iDOB]);
+                // set the date of birth caprtured from tokenized string in 3rd index
+                blockRecord.setDiag(tokens[iDIAG]);
+                // the the diagnoses in the record with the tokenized input from 4 th index
+                blockRecord.setTreatment(tokens[iTREAT]);
+                // set the treatment in the record with the tokenized input from the 5th index
+                blockRecord.setRx(tokens[iRX]);
+                // the the mediacation withe the tokenized string from the 6th index
+
+                recordLinkedList.add(blockRecord);
+                // add the block record to our linked list
+                i++;
+                // iterate
+            }
+
+            System.out.println(i + " records read." + "\n");
+            // print out the number of read records
+
+            Iterator<BlockRecord> blockRecordIterator = recordLinkedList.iterator();
+            // create and initialize a new iterator object for BlockRecord objects
+            while (blockRecordIterator.hasNext())
+            {
+                tempBlockRecord = blockRecordIterator.next();
+                // assign the next record to our temp block variable
+                System.out.println(tempBlockRecord.getTimeStamp() + " " + tempBlockRecord.getFirstName() + " " + tempBlockRecord.getLastName() );
+                // print out the temp tecords first and last name and timestamp
+            }
+            System.out.println("");
+            // new line
+            blockRecordIterator = recordLinkedList.iterator();
+
+            System.out.println("The shuffled list: ");
+            // print a header for our shuffled list
+            Collections.shuffle(recordLinkedList);
+            // perform the shuffle
+            while (blockRecordIterator.hasNext())
+            {
+                tempBlockRecord = blockRecordIterator.next();
+                // assign records to our temp variable while the linked list is not empty
+                System.out.println(tempBlockRecord.getTimeStamp() + " " + tempBlockRecord.getFirstName() + " " + tempBlockRecord.getLastName() );
+                // print out the temp tecords first and last name and timestamp
+            }
+            System.out.println("");
+            // new line for formattin
+
+            System.out.println("Priority Queue Restored Order: ");
+            while (true)
+            {
+                tempBlockRecord = ourPriorityQueue.poll();
+                // pop the head of the queue will poll into temp block record variable
+                if (tempBlockRecord == null)
+                {
+                    break;
+                }
+                System.out.println(tempBlockRecord.getTimeStamp() + " " + tempBlockRecord.getFirstName() + " " + tempBlockRecord.getLastName() );
+                // print out the temp tecords first and last name and timestamp
+            }
+            System.out.println("\n\n");
+            // new line for formatting
+        } catch (Exception exc)
+        {
+            exc.printStackTrace();
+            // print out errors to console
+        }
+
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        // create new gson object to marshall into JSON formatted with pretty print
+        String jsonString = gson.toJson(recordLinkedList);
+        // marshall the linked list into JSON string
+        System.out.println("\nJSON: " + jsonString);
+        // print out or marshalled json string
+
+        try (FileWriter writer = new FileWriter("myList.json"))
+        {
+            gson.toJson(recordLinkedList, writer);
+        } catch (IOException exception)
+        {
+            exception.printStackTrace();
+            //print errors to console
+        }
+    }
+}
 
 
 
@@ -568,11 +836,8 @@ public class BlockchainD
     public static final String ALGORITHM = "RSA";
     // using RSA encryption
 
-    LinkedList<BlockRecord> recordList = new LinkedList<BlockRecord>();
+    public static LinkedList<BlockRecord> recordList = new LinkedList<BlockRecord>();
     // declare and initialize a new linked list full of BlockRecords
-
-    final PriorityBlockingQueue<BlockRecord> BlockchainPriorityQueue = new PriorityBlockingQueue<BlockRecord>(100, BlockTimeStampComparator);
-    // declare a final blocking priority queue that is concurrent
 
     public static Comparator<BlockRecord> BlockTimeStampComparator = new Comparator<BlockRecord>()
     {
@@ -606,7 +871,10 @@ public class BlockchainD
         }
     };
 
-    public void KeySend()
+    public static final PriorityBlockingQueue<BlockRecord> BlockchainPriorityQueue = new PriorityBlockingQueue<BlockRecord>(100, BlockTimeStampComparator);
+    // declare a final blocking priority queue that is concurrent
+
+    public static void KeySend()
     {
         Socket socket;
         // declare a new socket
@@ -632,7 +900,7 @@ public class BlockchainD
         }
     }
 
-    public void UnverifiedSend()
+    public static void UnverifiedSend()
     {
         Socket UnverifiedBlockSocket;
         // declare a unbverified block socket to hold client connection to UVBServer for each process
@@ -652,7 +920,7 @@ public class BlockchainD
 
         try
         {
-            Thread.sleep(999);
+            Thread.sleep(1000);
             // give time for keys to be verified
         } catch (InterruptedException interruptedException)
         {
@@ -663,10 +931,11 @@ public class BlockchainD
 
         try
         {
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < 4; i++)
+            {
                 BlockRecord blockRecord = new BlockRecord();
                 // declare nd initialize a new block record variable
-                fakeBlockData = "(Block#" + Integer.toString(((BlockchainD.PID + 1) * 10) + i) + " from Process: " + BlockchainD.PID + ")";
+                fakeBlockData = "(Block# " + Integer.toString(((BlockchainD.PID + 1) * 10) + i) + " from Process: " + BlockchainD.PID + ")";
                 // fill our string with our fake block data and format it
                 sendData(fakeBlockData);
                 // following utility code, we will need to use our dynamically built chain with block recored below
@@ -682,7 +951,7 @@ public class BlockchainD
                 // print out time stamp string to console
                 BlockRecord.setTimeStamp(TimeStampString);
                 // set the timestamp in order to sort our priority queue for the blockrecord
-                setTimeStamp(TimeStampString);
+                BlockRecord.setTimeStamp(TimeStampString);
                 // set timestamp for our BlockchainD that has the fake block in there
                 recordList.add(blockRecord);
             }
@@ -692,7 +961,8 @@ public class BlockchainD
             Iterator<BlockRecord> iterator = recordList.iterator();
             // declarea and initialize a new iterator for our blockrecord object
 
-            while (iterator.hasNext()) {
+            while (iterator.hasNext())
+            {
                 tempBlockRecord = iterator.next();
                 // hold a block in our temp var as it iterates through our record
                 System.out.println(tempBlockRecord.getTimeStamp() + " " + tempBlockRecord.getData());
@@ -833,9 +1103,9 @@ public class BlockchainD
         return this.data;
     }
 
-    public void sendData(String data)
+    public static void sendData(String data)
     {
-        this.data = data;
+        BlockchainD.data = data;
         // method to send data to the block
     }
 
@@ -1019,8 +1289,6 @@ public class BlockchainD
         {
             processNum = 0;
         }
-
-
 
         unverifiedBlock_portNum = 4710 +processNum;
         // sets unverified block port number according to its process number
@@ -1261,6 +1529,15 @@ public class BlockchainD
         blockchain.add(fourthBlock);
         // add it to our blockchain
 
+        BlockInput in = new BlockInput();
+
+        try
+        {
+            in.ListBlock(a);
+        } catch (Exception exception)
+        {
+            exception.printStackTrace();
+        }
 
         boolean flag = true;
         // declare and initialize our boolean flag var to true
@@ -1318,7 +1595,80 @@ public class BlockchainD
         readFromJSON();
         // read our input from a JSON file
 
+        System.out.println("Running now\n");
+        // print to the console that main is running
+        //int q_len = 6;
+        // num of opsys requests
+        PID = (a.length < 1) ? 0 : Integer.parseInt(a[0]);
+        // to determine process ID
+        System.out.println("Bryce Jensen's Block Coordinating Framework for Clark Elliott's CSC435 . Stop process with ctrl+c");
+        // inform the console what is runing
+        System.out.println("Using process ID: " + PID + "\n");
+        // print out the process number coming through
 
+        new Ports().setPorts();
+        // determine port number depending on process id
+
+        try {
+            new Thread(new PublicKeyServer()).start();
+            // initiate a new thread for processing publick keys
+            new Thread(new UVBServer(BlockchainPriorityQueue)).start();
+            // start an new thread to process unverified blocks
+            new Thread(new UVBConsumer(BlockchainPriorityQueue)).start();
+            // begin handling queued up unverified blocks
+            new Thread(new BlockchainServer()).start();
+        } catch (Exception exception)
+        {
+            exception.printStackTrace();
+        }
+
+        // start a new thread for incoming blocks
+        try
+        {
+            Thread.sleep(1000);
+            // give servers some time to work
+        } catch (Exception exception)
+        {
+            exception.printStackTrace();
+            // print any caught exceptionsto the console
+        }
+
+        BlockchainD.KeySend();
+        // send the keys
+
+        try
+        {
+            Thread.sleep(1000);
+        } catch (Exception exception)
+        {
+            exception.printStackTrace();
+            // print any caught exceptionsto the console
+        }
+
+        BlockchainD.UnverifiedSend();
+        // attempt to multicast some unverified blocks to all server processes
+
+        try
+        {
+            Thread.sleep(1000);
+            // wait for multicast
+        } catch (Exception exception)
+        {
+            exception.printStackTrace();
+            // print any caught exceptionsto the console
+        }
+
+        /*
+        new Thread(new UVBConsumer(BlockchainPriorityQueue)).start();
+        // begin handling queued up unverified blocks
+
+         */
+
+        System.out.println("\n__________2nd Write/Read Call in main___________\n");
+        writeToJSON();
+        // write our output to JSON file // does this look better
+        readFromJSON();
+        // read our input from a JSON file // should just read be up top and write at the bottom?
     }
 }
 
