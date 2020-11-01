@@ -19,7 +19,8 @@
  *                     g. BlockInput2.txt
  *
  * Thanks: http://www.javacodex.com/Concurrency/PriorityBlockingQueue-Example
- *
+ *         http://www.fredosaurus.com/notes-java/data/strings/96string_examples/example_stringToArray.html
+ *         https://www.javacodegeeks.com/2013/07/java-priority-queue-priorityqueue-example.html
  *
  * Notes:
  *       This is mini-project D of the Blockchain assignment.
@@ -45,16 +46,13 @@
  * 	today on 10/22/2020.
  */
 
-import java.awt.*;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.*;
 import java.security.spec.X509EncodedKeySpec;
-import java.sql.Time;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadLocalRandom;
@@ -62,6 +60,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import javax.swing.event.MouseInputAdapter;
+// import the google gson library in order to marshall java objects into JSON
 
 class BlockRecord implements Serializable // make serializable in order to send via socket
 {
@@ -549,7 +549,7 @@ class BlockchainWorker extends Thread
                 BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 String blockData = "";
                 // declare and initialize block data to an empty string
-                String blockDataInput = input.readLine();
+                String blockDataInput;
                 // declare and initialize a block data input variable  that takes in input from our Buffered Reader
                 while((blockDataInput = input.readLine()) != null)
                 {
@@ -610,7 +610,7 @@ class BlockInput
     protected static final int iTREAT = 5;
     protected static final int iRX = 6;
 
-    protected Queue<BlockRecord> ourPriorityQueue = new PriorityQueue<>(4, BlockTimeStampComparator);
+    public Queue<BlockRecord> ourPriorityQueue = new PriorityQueue<>(4, BlockTimeStampComparator);
     // declare a new priority quewue to hold our blockchain records by timestamp
 
     public static Comparator<BlockRecord> BlockTimeStampComparator = new Comparator<BlockRecord>() {
@@ -700,6 +700,7 @@ class BlockInput
                     Thread.sleep(1001);
                 } catch (InterruptedException interruptedException)
                 {
+                    System.out.println("Interruption Error after attempting first sleep() statement in ListBlocks");
                     interruptedException.printStackTrace();
                 }
 
@@ -713,9 +714,7 @@ class BlockInput
 
                 blockRecord.setTimeStamp(timeStampString);
 
-
                 string_uuid = new String(UUID.randomUUID().toString());
-
                 blockRecord.setBlockID(string_uuid);
 
                 tokens = InputLineString.split(" +");
@@ -735,14 +734,17 @@ class BlockInput
                 blockRecord.setRx(tokens[iRX]);
                 // the the mediacation withe the tokenized string from the 6th index
 
+
                 recordLinkedList.add(blockRecord);
                 // add the block record to our linked list
                 i++;
                 // iterate
             }
 
-            System.out.println(i + " records read." + "\n");
+            System.out.println("\n"+ i + " Records read." + "\n");
             // print out the number of read records
+
+            System.out.println("Records in linked list: ");
 
             Iterator<BlockRecord> blockRecordIterator = recordLinkedList.iterator();
             // create and initialize a new iterator object for BlockRecord objects
@@ -769,9 +771,15 @@ class BlockInput
                 // print out the temp tecords first and last name and timestamp
             }
             System.out.println("");
-            // new line for formattin
+            // new line for formatting
 
-            System.out.println("Priority Queue Restored Order: ");
+            blockRecordIterator = recordLinkedList.iterator();
+            while (blockRecordIterator.hasNext())
+            {
+                ourPriorityQueue.add(blockRecordIterator.next());
+            }
+
+            System.out.println("\nPriority Queue in Restored Order: ");
             while (true)
             {
                 tempBlockRecord = ourPriorityQueue.poll();
@@ -787,7 +795,9 @@ class BlockInput
             // new line for formatting
         } catch (Exception exc)
         {
+            System.out.println("****Exception caught after attempting to read in File Input in ListBlocks()****");
             exc.printStackTrace();
+            System.out.println("");
             // print out errors to console
         }
 
@@ -803,7 +813,9 @@ class BlockInput
             gson.toJson(recordLinkedList, writer);
         } catch (IOException exception)
         {
+            System.out.println("****Exception caught when attempting to write JSON objecgt to file***");
             exception.printStackTrace();
+            System.out.println("");
             //print errors to console
         }
     }
@@ -829,6 +841,9 @@ public class BlockchainD
 
     public static int numProcesses = 3;
     // number of processes we plan to run
+
+    public static String SignedSHA256;
+    //header for block
 
     public static int PID = 0;
     // ID numberof this process
@@ -917,17 +932,6 @@ public class BlockchainD
         // dec;lare a new date var
         Random random = new Random();
         // declare and initialize new random
-
-        try
-        {
-            Thread.sleep(1000);
-            // give time for keys to be verified
-        } catch (InterruptedException interruptedException)
-        {
-            interruptedException.printStackTrace();
-            // print interruption exception to the console
-        }
-
 
         try
         {
@@ -1487,6 +1491,7 @@ public class BlockchainD
 
     public static void main(String a[])
     {
+        /*
         List<BlockchainD> blockchain = new ArrayList<>();
         // declare and initialize our new blockchain
         int prefix = 4;
@@ -1529,15 +1534,6 @@ public class BlockchainD
         blockchain.add(fourthBlock);
         // add it to our blockchain
 
-        BlockInput in = new BlockInput();
-
-        try
-        {
-            in.ListBlock(a);
-        } catch (Exception exception)
-        {
-            exception.printStackTrace();
-        }
 
         boolean flag = true;
         // declare and initialize our boolean flag var to true
@@ -1556,7 +1552,7 @@ public class BlockchainD
              * set flag equal to the boolean value if the stored hash for the current block is calculated and stored correctly
              * and if the previous block stored in the current block is actually the hash of the previous block.
              * and if the current block has been mined
-             */
+
 
             tempCurrentHash = blockchain.get(i).getHash();
             // save current hash to print out
@@ -1571,6 +1567,8 @@ public class BlockchainD
         System.out.println("\nFlag: " + flag + "\nBlock: " + tempCurrentHash + "\nContent: " + tempData + "\nGood Job!\n");
         // print out the results to the console
 
+         */
+
 
         /*
             below is what is necessary for implementing Elliott's requirements:
@@ -1581,6 +1579,16 @@ public class BlockchainD
 
                 readFromJSON does exactly that
          */
+
+        BlockInput in = new BlockInput();
+
+        try
+        {
+            in.ListBlock(a);
+        } catch (Exception exception)
+        {
+            exception.printStackTrace();
+        }
 
         try
         {
